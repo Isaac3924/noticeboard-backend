@@ -1,4 +1,4 @@
-import express, { type Request, type Response } from 'express';
+import express, { type Request, type Response, type NextFunction } from 'express';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import pg from 'pg';
@@ -38,6 +38,24 @@ pool.query('SELECT NOW()', (err, res) => {
     console.log('Successfully connected to AWS RDS at:', res.rows[0].now);
   }
 });
+
+//Middleware to verify the JWT cookie
+const authenticateToken = (req: Request, res: Response, next: NextFunction): any => {
+  const token = req.cookies.auth_token;
+
+  if (!token) {
+    return res.status(401).json({ error: 'Access denied. No token provided.' });
+  }
+
+  try {
+    const verified = jwt.verify(token, process.env.JWT_SECRET as string);
+    //Attach the verified user data to the request object
+    (req as any).user = verified;
+    next();
+  } catch (error) {
+    return res.status(403).json({ error: 'Invalid or expired token' });
+  }
+};
 
 //--- ROUTES ---
 
@@ -124,8 +142,11 @@ app.post('/api/login', async (req: Request, res: Response): Promise<any> => {
 });
 
 //Protected Route (Check for valid cookie before responding)
-app.get('/api/dashboard', async (req: Request, res: Response) => {
-  res.send('Dashboard data (Protected Route)');
+app.get('/api/dashboard', authenticateToken, (req: Request, res: Response) => {
+  res.status(200).json({ 
+    message: 'Welcome to the Secure Dashboard.',
+    user: (req as any).user
+   });
 });
 
 //Start the server
