@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import pg from 'pg';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import cors from 'cors';
 
 //Load environment variables FIRST
 dotenv.config();
@@ -17,6 +18,10 @@ const PORT = process.env.PORT || 3000;
 //Middleware
 app.use(express.json()); //Parses JSON data in the request body
 app.use(cookieParser()); //Parses HTTP cookies attached to the request
+app.use(cors({
+  origin: process.env.CORS_ORIGIN,
+  credentials: true
+}));
 
 //Initialize the DB Connection Pool
 const pool = new Pool({
